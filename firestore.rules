@@ -1,0 +1,207 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId}
+    // Fields:
+    //   - uid: string (required, immutable) - The unique ID of the user.
+    //   - name: string (required, min: 1, max: 100) - The full name of the user.
+    //   - email: string (required, format: email) - The email address of the user.
+    //   - age: number (optional, min: 0, max: 150) - The age of the user.
+    //   - weight: number (optional, min: 0) - The current weight of the user in kg.
+    //   - height: number (optional, min: 0) - The height of the user in cm.
+    //   - goal: string (optional, enum: ["lose_weight", "gain_muscle", "maintain"]) - The fitness goal of the user.
+    //   - role: string (required, enum: ["user", "admin"]) - The role of the user.
+    //   - createdAt: timestamp (optional, immutable) - The timestamp when the profile was created.
+    //
+    // Collection: foodEntries
+    // Document ID: {entryId}
+    // Fields:
+    //   - id: string (required)
+    //   - userId: string (required, immutable)
+    //   - date: timestamp (required)
+    //   - mealType: string (required, enum: ["breakfast", "lunch", "dinner", "snack"])
+    //   - name: string (required, min: 1, max: 200)
+    //   - calories: number (required, min: 0)
+    //   - macros: map (required)
+    //     - protein: number (required, min: 0)
+    //     - carbs: number (required, min: 0)
+    //     - fat: number (required, min: 0)
+    //
+    // Collection: routines
+    // Document ID: {routineId}
+    // Fields:
+    //   - id: string (required)
+    //   - userId: string (required, immutable)
+    //   - name: string (required, min: 1, max: 100)
+    //   - exercises: list (required, max: 50)
+    //   - createdAt: timestamp (optional, immutable)
+    //
+    // Collection: scans
+    // Document ID: {scanId}
+    // Fields:
+    //   - id: string (required)
+    //   - userId: string (required, immutable)
+    //   - type: string (required, enum: ["body", "face"])
+    //   - date: timestamp (required)
+    //   - result: map (required)
+    //   - imageUrl: string (optional, format: url)
+    //
+    // Collection: stepLogs
+    // Document ID: {logId}
+    // Fields:
+    //   - id: string (required)
+    //   - userId: string (required, immutable)
+    //   - date: string (required, format: YYYY-MM-DD)
+    //   - steps: number (required, min: 0)
+    //   - distance: number (optional, min: 0)
+    //   - calories: number (optional, min: 0)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "gatotacticocat@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidUrl(url) {
+      return url is string && (url.matches("^https://.*") || url.matches("^http://.*"));
+    }
+
+    function isValidDateString(dateStr) {
+      return dateStr is string && dateStr.matches("^\\d{4}-\\d{2}-\\d{2}$");
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return hasRequiredFields(['uid', 'name', 'email', 'role']) &&
+             hasOnlyAllowedFields(['uid', 'name', 'email', 'role', 'age', 'weight', 'height', 'goal', 'createdAt']) &&
+             data.uid == request.auth.uid &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             isValidEmail(data.email) &&
+             data.role in ['user', 'admin'] &&
+             (!('age' in data) || (data.age is number && data.age >= 0 && data.age <= 150)) &&
+             (!('weight' in data) || (data.weight is number && data.weight >= 0)) &&
+             (!('height' in data) || (data.height is number && data.height >= 0)) &&
+             (!('goal' in data) || (data.goal in ['lose_weight', 'gain_muscle', 'maintain']));
+    }
+
+    function isValidFoodEntry(data) {
+      return hasRequiredFields(['userId', 'date', 'mealType', 'name', 'calories', 'macros']) &&
+             hasOnlyAllowedFields(['id', 'userId', 'date', 'mealType', 'name', 'calories', 'macros']) &&
+             data.userId == request.auth.uid &&
+             data.date is timestamp &&
+             data.mealType in ['breakfast', 'lunch', 'dinner', 'snack'] &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
+             data.calories is number && data.calories >= 0 &&
+             data.macros is map &&
+             data.macros.protein is number && data.macros.protein >= 0 &&
+             data.macros.carbs is number && data.macros.carbs >= 0 &&
+             data.macros.fat is number && data.macros.fat >= 0;
+    }
+
+    function isValidRoutine(data) {
+      return hasRequiredFields(['userId', 'name', 'exercises']) &&
+             hasOnlyAllowedFields(['id', 'userId', 'name', 'exercises', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.exercises is list && data.exercises.size() <= 50;
+    }
+
+    function isValidScan(data) {
+      return hasRequiredFields(['userId', 'type', 'date', 'result']) &&
+             hasOnlyAllowedFields(['id', 'userId', 'type', 'date', 'result', 'imageUrl']) &&
+             data.userId == request.auth.uid &&
+             data.type in ['body', 'face'] &&
+             data.date is timestamp &&
+             data.result is map &&
+             (!('imageUrl' in data) || isValidUrl(data.imageUrl));
+    }
+
+    function isValidStepLog(data) {
+      return hasRequiredFields(['userId', 'date', 'steps']) &&
+             hasOnlyAllowedFields(['id', 'userId', 'date', 'steps', 'distance', 'calories']) &&
+             data.userId == request.auth.uid &&
+             isValidDateString(data.date) &&
+             data.steps is number && data.steps >= 0 &&
+             (!('distance' in data) || (data.distance is number && data.distance >= 0)) &&
+             (!('calories' in data) || (data.calories is number && data.calories >= 0));
+    }
+
+    // ===============================================================
+    // Match Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && (request.resource.data.role == 'user' || isAdmin());
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) && (request.resource.data.role == resource.data.role || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /foodEntries/{entryId} {
+      allow read: if isDocOwner() || isAdmin();
+      allow create: if isAuthenticated() && isValidFoodEntry(request.resource.data);
+      allow update: if isDocOwner() && isValidFoodEntry(request.resource.data) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isDocOwner() || isAdmin();
+    }
+
+    match /routines/{routineId} {
+      allow read: if isDocOwner() || isAdmin();
+      allow create: if isAuthenticated() && isValidRoutine(request.resource.data);
+      allow update: if isDocOwner() && isValidRoutine(request.resource.data) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isDocOwner() || isAdmin();
+    }
+
+    match /scans/{scanId} {
+      allow read: if isDocOwner() || isAdmin();
+      allow create: if isAuthenticated() && isValidScan(request.resource.data);
+      allow update: if isDocOwner() && isValidScan(request.resource.data) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isDocOwner() || isAdmin();
+    }
+
+    match /stepLogs/{logId} {
+      allow read: if isDocOwner() || isAdmin();
+      allow create: if isAuthenticated() && isValidStepLog(request.resource.data);
+      allow update: if isDocOwner() && isValidStepLog(request.resource.data) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isDocOwner() || isAdmin();
+    }
+  }
+}

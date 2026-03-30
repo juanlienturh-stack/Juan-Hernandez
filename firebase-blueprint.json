@@ -1,0 +1,118 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Stores user profile information and settings.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The unique ID of the user." },
+        "name": { "type": "string", "description": "The full name of the user." },
+        "email": { "type": "string", "format": "email", "description": "The email address of the user." },
+        "age": { "type": "number", "description": "The age of the user." },
+        "weight": { "type": "number", "description": "The current weight of the user in kg." },
+        "height": { "type": "number", "description": "The height of the user in cm." },
+        "goal": { "type": "string", "enum": ["lose_weight", "gain_muscle", "maintain"], "description": "The fitness goal of the user." },
+        "role": { "type": "string", "enum": ["user", "admin"], "description": "The role of the user." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "The timestamp when the profile was created." }
+      },
+      "required": ["uid", "name", "email", "role"]
+    },
+    "FoodEntry": {
+      "title": "Food Entry",
+      "description": "A single food log entry.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "mealType": { "type": "string", "enum": ["breakfast", "lunch", "dinner", "snack"] },
+        "name": { "type": "string" },
+        "calories": { "type": "number" },
+        "macros": {
+          "type": "object",
+          "properties": {
+            "protein": { "type": "number" },
+            "carbs": { "type": "number" },
+            "fat": { "type": "number" }
+          }
+        }
+      },
+      "required": ["userId", "date", "mealType", "name", "calories"]
+    },
+    "Routine": {
+      "title": "Routine",
+      "description": "A saved exercise routine.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "exercises": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "name": { "type": "string" },
+              "group": { "type": "string" },
+              "focus": { "type": "string" },
+              "description": { "type": "string" }
+            }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "exercises"]
+    },
+    "Scan": {
+      "title": "Scan",
+      "description": "A body or face scan result.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "type": { "type": "string", "enum": ["body", "face"] },
+        "date": { "type": "string", "format": "date-time" },
+        "result": { "type": "object" },
+        "imageUrl": { "type": "string" }
+      },
+      "required": ["userId", "type", "date", "result"]
+    },
+    "StepLog": {
+      "title": "Step Log",
+      "description": "Daily step count log.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "steps": { "type": "number" },
+        "distance": { "type": "number" },
+        "calories": { "type": "number" }
+      },
+      "required": ["userId", "date", "steps"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile documents."
+    },
+    "/foodEntries/{entryId}": {
+      "schema": "FoodEntry",
+      "description": "Nutrition logs."
+    },
+    "/routines/{routineId}": {
+      "schema": "Routine",
+      "description": "Exercise routines."
+    },
+    "/scans/{scanId}": {
+      "schema": "Scan",
+      "description": "Body and face scan results."
+    },
+    "/stepLogs/{logId}": {
+      "schema": "StepLog",
+      "description": "Daily step logs."
+    }
+  }
+}

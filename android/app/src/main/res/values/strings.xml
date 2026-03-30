@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">VitalisAI</string>
+    <string name="title_activity_main">VitalisAI</string>
+    <string name="package_name">com.vitalis.ai</string>
+    <string name="custom_url_scheme">com.vitalis.ai</string>
+</resources>

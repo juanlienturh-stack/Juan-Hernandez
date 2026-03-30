@@ -1,0 +1,5 @@
+{
+  "name": "Vitalis AI",
+  "description": "Plataforma integral de salud y fitness con IA: Escaneo corporal y facial, nutrición avanzada, rutinas de ejercicio y looksmaxing.",
+  "requestFramePermissions": ["camera", "microphone", "geolocation"]
+}
