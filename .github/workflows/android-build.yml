@@ -16,11 +16,11 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install Dependencies
-        run: npm install
+        run: npm install --legacy-peer-deps
 
       - name: Build Web App
         run: npm run build
@@ -30,6 +30,11 @@ jobs:
         with:
           distribution: 'zulu'
           java-version: '17'
+
+      - name: Fix Corrupted Gradle Wrapper
+        run: |
+          mkdir -p android/gradle/wrapper
+          curl -L https://raw.githubusercontent.com/gradle/gradle/v8.14.3/gradle/wrapper/gradle-wrapper.jar -o android/gradle/wrapper/gradle-wrapper.jar
 
       - name: Sync Capacitor
         run: npx cap sync android
