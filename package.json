@@ -10,6 +10,8 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
     "@google/genai": "^1.29.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -25,8 +27,9 @@
     "vite": "^6.2.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.3.4",
+    "@capacitor/cli": "^7.0.0",
     "@tailwindcss/vite": "^4.1.14",
+    "@vitejs/plugin-react": "^4.3.4",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.4.21",
